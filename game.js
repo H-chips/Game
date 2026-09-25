@@ -59,12 +59,14 @@
   }
   // 刷怪半径随等级拉开，避免屏幕塞满；手机小屏视野被拉远，所以要同步外推，
   // 否则会出现「生物在眼前凭空冒出来」
+  // 屏幕可视区域的外接圆半径（世界坐标）：刷怪必须在这个圈外，否则会当着玩家的面冒出来
   function viewR() { return Math.hypot(W, H) / 2 / baseZoom; }
   function spawnR() {
-    var vr = viewR();
+    // 只在小屏上外推；设上限，否则大屏会把生物推得太远、显得空旷（密度骤降）
+    var vr = Math.min(viewR() * 1.05, 760);
     return [
-      Math.max(SPAWN_MIN_R, vr * 0.72) + player.level * 18,
-      Math.max(SPAWN_MAX_R, vr * 1.15) + player.level * 46
+      Math.max(SPAWN_MIN_R, vr) + player.level * 18,
+      Math.max(SPAWN_MAX_R, vr + 260) + player.level * 46
     ];
   }
   function despawnR() {
@@ -73,8 +75,8 @@
   }
 
   function radiusOf(lvl) { return SPECIES[lvl].size * 0.75; }
-  function speedOfPlayer(lvl) { return 168 + lvl * 6; }
-  function speedOfCreature(lvl) { return 70 + lvl * 8; }   // 生物整体变快，水域更有生气
+  function speedOfPlayer(lvl) { return 225 + lvl * 9; }    // 手感偏快，拖动更跟手
+  function speedOfCreature(lvl) { return 78 + lvl * 9; }   // 生物整体变快，水域更有生气
 
   /* ============================ DOM ============================ */
   var cv = document.getElementById('game');
@@ -112,8 +114,8 @@
     cv.width = Math.round(W * DPR);
     cv.height = Math.round(H * DPR);
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-    // 手机屏幕小，自动拉远一点，保证能看到足够大的水域
-    baseZoom = clamp(Math.min(W, H) / 760, 0.62, 1);
+    // 手机屏幕小则轻微拉远，但幅度很小：优先保证生物看起来够大
+    baseZoom = clamp(Math.min(W, H) / 900, 0.88, 1);
   }
   window.addEventListener('resize', resize);
   window.addEventListener('orientationchange', function () { setTimeout(resize, 250); });
@@ -217,7 +219,7 @@
       var mx = input.x - input.ox, my = input.y - input.oy;
       var m = Math.sqrt(mx * mx + my * my);
       if (m > 6) {
-        var k = Math.min(m, 90) / 90;   // 摇杆推得越远越快
+        var k = Math.min(m, 70) / 70;   // 摇杆推得越远越快（70px 即满速，手机更跟手）
         dx = mx / m * k; dy = my / m * k;
       }
     }
@@ -405,8 +407,8 @@
       state.time += dt;
       var d = readDir();
       var sp = speedOfPlayer(player.level);
-      player.vx = lerp(player.vx, d.x * sp, clamp(dt * 9, 0, 1));
-      player.vy = lerp(player.vy, d.y * sp, clamp(dt * 9, 0, 1));
+      player.vx = lerp(player.vx, d.x * sp, clamp(dt * 12, 0, 1));
+      player.vy = lerp(player.vy, d.y * sp, clamp(dt * 12, 0, 1));
       player.x += player.vx * dt;
       player.y += player.vy * dt;
       if (Math.hypot(player.vx, player.vy) > 8) {
@@ -488,8 +490,8 @@
     }
 
     // 相机
-    cam.x = lerp(cam.x, player.x, clamp(dt * 6, 0, 1));
-    cam.y = lerp(cam.y, player.y, clamp(dt * 6, 0, 1));
+    cam.x = lerp(cam.x, player.x, clamp(dt * 8, 0, 1));
+    cam.y = lerp(cam.y, player.y, clamp(dt * 8, 0, 1));
 
     state.shake = Math.max(0, state.shake - dt * 40);
     state.zoomPunch = lerp(state.zoomPunch, 1, clamp(dt * 5, 0, 1));
@@ -1729,10 +1731,10 @@
 
     // 其它生物
     var vz = state.zoomPunch * baseZoom;
-    var viewR = Math.max(W, H) / vz * 0.75 + 420;
+    var cullR = Math.max(W, H) / vz * 0.75 + 420;
     for (var i = 0; i < entities.length; i++) {
       var e = entities[i];
-      if (Math.hypot(e.x - cam.x, e.y - cam.y) > viewR) continue;
+      if (Math.hypot(e.x - cam.x, e.y - cam.y) > cullR) continue;
       var r = radiusOf(e.level);
       drawShadow(e.x, e.y, r);
       if (e.level > player.level) {
