@@ -76,6 +76,7 @@
 
   function radiusOf(lvl) { return SPECIES[lvl].size * 0.75; }
   function speedOfPlayer(lvl) { return 310 + lvl * 11; }   // 游动更爽快
+  var TURN_SPEED = 9;      // 转向跟随速度：越大掉头越干脆
   function speedOfCreature(lvl) { return 96 + lvl * 11; }  // 生物同步提速，保持追逐手感
 
   /* ============================ DOM ============================ */
@@ -276,6 +277,7 @@
   var cam = { x: 0, y: 0 };
   var player = {
     x: 0, y: 0, vx: 0, vy: 0, ang: 0,
+    dirAng: 0,          // 当前游动方向：没有输入时也一直朝这个方向前进
     level: 0, progress: 0, hearts: MAX_HEARTS, invuln: 0, seed: 0
   };
   var entities = [];
@@ -441,15 +443,19 @@
 
     if (state.running && !state.finished) {
       state.time += dt;
+      // 操控只决定「朝哪游」：手指/按键给出目标方向，松手后仍保持该方向一直前进
       var d = readDir();
       var sp = speedOfPlayer(player.level);
-      player.vx = lerp(player.vx, d.x * sp, clamp(dt * 14, 0, 1));
-      player.vy = lerp(player.vy, d.y * sp, clamp(dt * 14, 0, 1));
+      if (d.x || d.y) {
+        // 手指推得越远，转向越干脆（m 为摇杆推量 0~1）
+        var push = Math.sqrt(d.x * d.x + d.y * d.y);
+        player.dirAng = angLerp(player.dirAng, Math.atan2(d.y, d.x), clamp(dt * TURN_SPEED * (0.35 + 0.65 * push), 0, 1));
+      }
+      player.vx = lerp(player.vx, Math.cos(player.dirAng) * sp, clamp(dt * 14, 0, 1));
+      player.vy = lerp(player.vy, Math.sin(player.dirAng) * sp, clamp(dt * 14, 0, 1));
       player.x += player.vx * dt;
       player.y += player.vy * dt;
-      if (Math.hypot(player.vx, player.vy) > 8) {
-        player.ang = angLerp(player.ang, Math.atan2(player.vy, player.vx), clamp(dt * 10, 0, 1));
-      }
+      player.ang = angLerp(player.ang, player.dirAng, clamp(dt * 12, 0, 1));
       if (player.invuln > 0) player.invuln -= dt;
 
       // 游动尾迹：气泡 + 涟漪
@@ -1948,6 +1954,7 @@
     state.zoomPunch = 1;
     state.flash = 0;
     player.x = 0; player.y = 0; player.vx = 0; player.vy = 0; player.ang = 0;
+    player.dirAng = rand(0, TAU);   // 出生就朝随机方向游出去
     player.level = 0; player.progress = 0; player.hearts = MAX_HEARTS;
     player.invuln = 0; player.seed = Math.random() * 10;
     cam.x = 0; cam.y = 0;
