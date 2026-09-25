@@ -75,10 +75,10 @@
   }
 
   function radiusOf(lvl) { return SPECIES[lvl].size * 0.75; }
-  function speedOfPlayer(lvl) { return 310 + lvl * 11; }   // 游动更爽快
+  function speedOfPlayer(lvl) { return 155 + lvl * 5.5; }   // 整体节奏减半（原 310 + lvl*11）
   var TURN_SPEED = 9;      // 转向跟随速度：越大掉头越干脆
-  // 高级生物明显慢于玩家（Lv11: 150 vs 玩家 431），靠拦截而非硬追
-  function speedOfCreature(lvl) { return 84 + lvl * 6; }
+  // 高级生物明显慢于玩家（Lv11: 75 vs 玩家 215），靠拦截而非硬追
+  function speedOfCreature(lvl) { return 42 + lvl * 3; }
 
   /* ============================ DOM ============================ */
   var cv = document.getElementById('game');
@@ -429,8 +429,8 @@
     state.flashColor = '255,80,80';
     var dx = player.x - e.x, dy = player.y - e.y;
     var m = Math.hypot(dx, dy) || 1;
-    player.vx += dx / m * 320;
-    player.vy += dy / m * 320;
+    player.vx += dx / m * 160;   // 被撞退开的距离也同步减半，保持比例
+    player.vy += dy / m * 160;
     burst(player.x, player.y, '#ff6b6b', 16, 1.2);
     popup(player.x, player.y - SPECIES[player.level].size, '-1 ❤', '#ff6b6b', 17);
     sfx.hurt();
