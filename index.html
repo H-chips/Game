@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="format-detection" content="telephone=no,email=no,address=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#062538">
+<meta name="description" content="从蝌蚪一路合成进化成神龙的 H5 小游戏，手机点开即玩。">
+<title>合成神龙 · 从蝌蚪到神龙</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+  <canvas id="game"></canvas>
+
+  <!-- ===== 游戏内 HUD ===== -->
+  <div id="hud" class="hide">
+    <div class="topbar">
+      <div class="chain" id="chain"></div>
+      <div class="panel">
+        <div class="line1">
+          <span class="cur" id="curName">蝌蚪</span>
+          <span class="lv" id="curLv">Lv.1</span>
+          <span class="score" id="score">0</span>
+        </div>
+        <div class="bar"><i id="barFill"></i><span id="barTxt">0 / 3</span></div>
+        <div class="line2">
+          <span class="hearts" id="hearts"></span>
+          <span class="time" id="time">00:00</span>
+        </div>
+      </div>
+    </div>
+    <div class="tip" id="tip">拖动屏幕控制游动</div>
+  </div>
+
+  <button id="muteBtn" class="mute hide" type="button" aria-label="音效开关">🔊</button>
+
+  <!-- ===== 开始 / 结算 ===== -->
+  <div id="overlay" class="overlay">
+    <div class="card" id="startCard">
+      <h1>合成神龙</h1>
+      <p class="sub">从一只小蝌蚪，一路吃到神龙 🐉</p>
+      <ul class="rules">
+        <li><b>拖动屏幕</b>（或方向键 / WASD）控制游动</li>
+        <li><b>等级 ≤ 你</b>的生物，撞上去就能吸收</li>
+        <li>集满 <b>3 只同级</b>生物，立刻<b>进化一级</b></li>
+        <li>低级生物价值低：3 只低一级 = 1 只同级</li>
+        <li><b>等级比你高</b>的生物会撞伤你，共 3 颗心</li>
+      </ul>
+      <button class="btn" id="startBtn" type="button">开始进化</button>
+      <p class="best" id="startBest"></p>
+    </div>
+
+    <div class="card hide" id="endCard">
+      <h1 id="endTitle">进化失败</h1>
+      <p class="sub" id="endSub"></p>
+      <div class="stats">
+        <div><span id="endLv">Lv.1</span><em>最终形态</em></div>
+        <div><span id="endScore">0</span><em>得分</em></div>
+        <div><span id="endTime">00:00</span><em>用时</em></div>
+      </div>
+      <div class="chain big" id="endChain"></div>
+      <button class="btn" id="againBtn" type="button">再来一局</button>
+    </div>
+  </div>
+</div>
+<script src="game.js"></script>
+</body>
+</html>

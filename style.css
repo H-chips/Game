@@ -1,0 +1,273 @@
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #062538;
+  color: #eaf6ff;
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB",
+               "Microsoft YaHei", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-text-size-adjust: 100%;
+  touch-action: none;
+  overscroll-behavior: none;
+}
+
+#app { position: fixed; inset: 0; overflow: hidden; }
+
+#game {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.hide { display: none !important; }
+
+/* ---------------- HUD ---------------- */
+#hud {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  padding: calc(env(safe-area-inset-top, 0px) + 10px) 12px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.topbar {
+  width: 100%;
+  max-width: 560px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.chain {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: nowrap;
+  overflow: hidden;
+}
+
+.chain.big { gap: 8px; margin: 14px 0 4px; flex-wrap: wrap; }
+
+.node {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .09);
+  border: 1px solid rgba(255, 255, 255, .12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  color: rgba(255, 255, 255, .35);
+  transition: transform .25s ease, box-shadow .25s ease, background .25s ease;
+}
+
+.chain.big .node { width: 30px; height: 30px; font-size: 13px; }
+
+.node.done { color: rgba(255, 255, 255, .8); }
+.node.cur {
+  transform: scale(1.45);
+  color: #062538;
+  font-weight: 700;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, .22), 0 0 16px currentColor;
+}
+.chain.big .node.cur { transform: scale(1.25); }
+
+.panel {
+  background: rgba(4, 26, 42, .55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, .12);
+  border-radius: 14px;
+  padding: 9px 12px 10px;
+}
+
+.line1 {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 7px;
+}
+
+.cur { font-size: 17px; font-weight: 700; letter-spacing: .5px; }
+.lv { font-size: 11px; color: #8fd4ff; background: rgba(143, 212, 255, .14); padding: 2px 6px; border-radius: 6px; }
+.score { margin-left: auto; font-size: 14px; font-weight: 700; color: #ffd75c; }
+.score::after { content: " 分"; font-size: 10px; font-weight: 400; opacity: .7; }
+
+.bar {
+  position: relative;
+  height: 16px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, .1);
+  overflow: hidden;
+}
+
+.bar i {
+  display: block;
+  height: 100%;
+  width: 0%;
+  border-radius: 9px;
+  background: linear-gradient(90deg, #38d0a4, #7ef7d1);
+  transition: width .18s ease;
+}
+
+.bar span {
+  position: absolute;
+  inset: 0;
+  font-size: 10px;
+  line-height: 16px;
+  text-align: center;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, .6);
+}
+
+.line2 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 6px;
+  font-size: 12px;
+  color: rgba(234, 246, 255, .75);
+}
+
+.hearts { letter-spacing: 3px; font-size: 15px; color: #ff6b6b; }
+.hearts em { color: rgba(255, 255, 255, .2); font-style: normal; }
+
+.tip {
+  margin-top: auto;
+  font-size: 12px;
+  color: rgba(234, 246, 255, .55);
+  background: rgba(4, 26, 42, .4);
+  padding: 5px 12px;
+  border-radius: 20px;
+  transition: opacity .5s ease;
+}
+
+/* ---------------- 音效按钮 ---------------- */
+.mute {
+  position: absolute;
+  right: calc(env(safe-area-inset-right, 0px) + 12px);
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 14px);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, .16);
+  background: rgba(4, 26, 42, .55);
+  color: #eaf6ff;
+  font-size: 18px;
+  line-height: 38px;
+  text-align: center;
+  padding: 0;
+}
+
+/* ---------------- 弹窗 ---------------- */
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: radial-gradient(circle at 50% 35%, rgba(12, 60, 90, .82), rgba(3, 16, 26, .93));
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  overflow: auto;
+}
+
+.overlay.hide { display: none !important; }
+
+.card {
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+  animation: pop .35s ease;
+}
+
+@keyframes pop {
+  from { opacity: 0; transform: translateY(14px) scale(.96); }
+  to { opacity: 1; transform: none; }
+}
+
+.card h1 {
+  font-size: 30px;
+  letter-spacing: 2px;
+  background: linear-gradient(90deg, #ffe27a, #ff9d5c, #7ef7d1);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  margin-bottom: 6px;
+}
+
+.card .sub { font-size: 13px; color: rgba(234, 246, 255, .65); margin-bottom: 16px; }
+
+.rules {
+  list-style: none;
+  text-align: left;
+  font-size: 13px;
+  line-height: 1.9;
+  color: rgba(234, 246, 255, .82);
+  background: rgba(255, 255, 255, .05);
+  border: 1px solid rgba(255, 255, 255, .1);
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-bottom: 18px;
+}
+
+.rules li { padding-left: 16px; position: relative; }
+.rules li::before { content: "◆"; position: absolute; left: 0; color: #7ef7d1; font-size: 9px; top: 5px; }
+.rules b { color: #ffd75c; }
+
+.btn {
+  width: 100%;
+  height: 48px;
+  border: none;
+  border-radius: 26px;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  color: #062538;
+  background: linear-gradient(135deg, #7ef7d1, #ffd75c);
+  box-shadow: 0 8px 24px rgba(126, 247, 209, .28);
+  cursor: pointer;
+}
+
+.btn:active { transform: translateY(1px); }
+
+.best { margin-top: 12px; font-size: 12px; color: rgba(234, 246, 255, .5); }
+
+.stats {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.stats div {
+  flex: 1;
+  background: rgba(255, 255, 255, .06);
+  border: 1px solid rgba(255, 255, 255, .1);
+  border-radius: 12px;
+  padding: 10px 4px;
+}
+
+.stats span { display: block; font-size: 18px; font-weight: 700; color: #ffd75c; }
+.stats em { display: block; font-style: normal; font-size: 11px; color: rgba(234, 246, 255, .55); margin-top: 3px; }
+
+@media (max-height: 520px) {
+  .card h1 { font-size: 24px; }
+  .rules { line-height: 1.6; font-size: 12px; }
+}
+
+@media (max-width: 340px) {
+  .chain { gap: 3px; }
+  .node { width: 16px; height: 16px; font-size: 9px; }
+}
