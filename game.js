@@ -48,7 +48,7 @@
   var MAX_LEVEL = SPECIES.length - 1;
   var MERGE_NEED = 3;      // 集满 3 只同级 -> 进化一级
   var MAX_HEARTS = 3;
-  var BASE_ENTITIES = 46;
+  var BASE_ENTITIES = 52;
   var SPAWN_MIN_R = 230;
   var SPAWN_MAX_R = 680;
   var DESPAWN_R = 1200;
@@ -63,7 +63,7 @@
   function viewR() { return Math.hypot(W, H) / 2 / baseZoom; }
   function spawnR() {
     // 只在小屏上外推；设上限，否则大屏会把生物推得太远、显得空旷（密度骤降）
-    var vr = Math.min(viewR() * 1.05, 760);
+    var vr = Math.min(viewR() * 1.05, 900);
     return [
       Math.max(SPAWN_MIN_R, vr) + player.level * 18,
       Math.max(SPAWN_MAX_R, vr + 260) + player.level * 46
@@ -75,8 +75,8 @@
   }
 
   function radiusOf(lvl) { return SPECIES[lvl].size * 0.75; }
-  function speedOfPlayer(lvl) { return 225 + lvl * 9; }    // 手感偏快，拖动更跟手
-  function speedOfCreature(lvl) { return 78 + lvl * 9; }   // 生物整体变快，水域更有生气
+  function speedOfPlayer(lvl) { return 310 + lvl * 11; }   // 游动更爽快
+  function speedOfCreature(lvl) { return 96 + lvl * 11; }  // 生物同步提速，保持追逐手感
 
   /* ============================ DOM ============================ */
   var cv = document.getElementById('game');
@@ -114,8 +114,8 @@
     cv.width = Math.round(W * DPR);
     cv.height = Math.round(H * DPR);
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-    // 手机屏幕小则轻微拉远，但幅度很小：优先保证生物看起来够大
-    baseZoom = clamp(Math.min(W, H) / 900, 0.88, 1);
+    // 优先保证生物够大：小屏不缩小（1.0），大屏反而放大到 1.18
+    baseZoom = clamp(Math.min(W, H) / 900, 1, 1.18);
   }
   window.addEventListener('resize', resize);
   window.addEventListener('orientationchange', function () { setTimeout(resize, 250); });
@@ -163,17 +163,27 @@
   });
 
   /* ============================ 输入 ============================ */
-  var input = { active: false, ox: 0, oy: 0, x: 0, y: 0, kx: 0, ky: 0 };
+  // id 记录「当前是哪根手指在操控」，避免另一根手指抬起时把操控打断（断触）
+  var input = { active: false, id: null, ox: 0, oy: 0, x: 0, y: 0, kx: 0, ky: 0 };
+  var STICK_R = 56;        // 摇杆满速半径（px）
+  var DEAD_ZONE = 7;       // 死区，手指轻微抖动不算方向
 
-  function pointerPos(e) {
-    var t = (e.touches && e.touches[0]) || (e.changedTouches && e.changedTouches[0]) || e;
-    return { x: t.clientX, y: t.clientY };
+  function touchById(list, id) {
+    if (!list) return null;
+    for (var i = 0; i < list.length; i++) if (list[i].identifier === id) return list[i];
+    return null;
+  }
+  function primaryTouch(e) {
+    return (e.changedTouches && e.changedTouches[0]) || (e.touches && e.touches[0]) || e;
   }
   function onDown(e) {
-    if (!state.running) return;
-    var p = pointerPos(e);
+    if (!state.running || input.active) return;   // 已有主手指时忽略后续手指
+    var t = primaryTouch(e);
+    if (!t || t.clientX == null) return;
     input.active = true;
-    input.ox = p.x; input.oy = p.y; input.x = p.x; input.y = p.y;
+    input.id = (t.identifier == null) ? 'mouse' : t.identifier;
+    input.ox = t.clientX; input.oy = t.clientY;
+    input.x = t.clientX; input.y = t.clientY;
     initAudio();
     if (elTip && !elTip.dataset.faded) {
       elTip.dataset.faded = '1';
@@ -182,10 +192,33 @@
   }
   function onMove(e) {
     if (!input.active) return;
-    var p = pointerPos(e);
-    input.x = p.x; input.y = p.y;
+    var t;
+    if (e.touches) {
+      t = touchById(e.touches, input.id);
+      if (!t) return;                    // 不是操控中的那根手指，忽略
+    } else if (input.id === 'mouse') {
+      t = e;
+    } else return;
+    input.x = t.clientX; input.y = t.clientY;
+    // 摇杆底盘跟着手指走：手指滑到屏幕边缘也不会失控
+    var dx = input.x - input.ox, dy = input.y - input.oy;
+    var m = Math.sqrt(dx * dx + dy * dy);
+    if (m > STICK_R) {
+      input.ox = input.x - dx / m * STICK_R;
+      input.oy = input.y - dy / m * STICK_R;
+    }
   }
-  function onUp() { input.active = false; }
+  function release() { input.active = false; input.id = null; }
+  function onUp(e) {
+    if (!input.active) return;
+    if (e && e.changedTouches) {
+      for (var i = 0; i < e.changedTouches.length; i++) {
+        if (e.changedTouches[i].identifier === input.id) { release(); return; }
+      }
+      return;                            // 抬起的是别的手指，继续操控
+    }
+    release();
+  }
 
   window.addEventListener('touchstart', onDown, { passive: true });
   window.addEventListener('touchmove', onMove, { passive: true });
@@ -194,6 +227,9 @@
   window.addEventListener('mousedown', onDown);
   window.addEventListener('mousemove', onMove);
   window.addEventListener('mouseup', onUp);
+  // 切后台 / 失焦 / 来电话时松开操控，回来不会自己一直游
+  window.addEventListener('blur', release);
+  document.addEventListener('visibilitychange', function () { if (document.hidden) release(); });
   document.addEventListener('gesturestart', function (e) { e.preventDefault(); });
   document.addEventListener('contextmenu', function (e) { e.preventDefault(); });
 
@@ -218,8 +254,8 @@
     if (input.active) {
       var mx = input.x - input.ox, my = input.y - input.oy;
       var m = Math.sqrt(mx * mx + my * my);
-      if (m > 6) {
-        var k = Math.min(m, 70) / 70;   // 摇杆推得越远越快（70px 即满速，手机更跟手）
+      if (m > DEAD_ZONE) {
+        var k = Math.min(m, STICK_R) / STICK_R;   // 推得越远越快，56px 即满速
         dx = mx / m * k; dy = my / m * k;
       }
     }
@@ -407,8 +443,8 @@
       state.time += dt;
       var d = readDir();
       var sp = speedOfPlayer(player.level);
-      player.vx = lerp(player.vx, d.x * sp, clamp(dt * 12, 0, 1));
-      player.vy = lerp(player.vy, d.y * sp, clamp(dt * 12, 0, 1));
+      player.vx = lerp(player.vx, d.x * sp, clamp(dt * 14, 0, 1));
+      player.vy = lerp(player.vy, d.y * sp, clamp(dt * 14, 0, 1));
       player.x += player.vx * dt;
       player.y += player.vy * dt;
       if (Math.hypot(player.vx, player.vy) > 8) {
@@ -490,8 +526,8 @@
     }
 
     // 相机
-    cam.x = lerp(cam.x, player.x, clamp(dt * 8, 0, 1));
-    cam.y = lerp(cam.y, player.y, clamp(dt * 8, 0, 1));
+    cam.x = lerp(cam.x, player.x, clamp(dt * 11, 0, 1));
+    cam.y = lerp(cam.y, player.y, clamp(dt * 11, 0, 1));
 
     state.shake = Math.max(0, state.shake - dt * 40);
     state.zoomPunch = lerp(state.zoomPunch, 1, clamp(dt * 5, 0, 1));
