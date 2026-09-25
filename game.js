@@ -77,7 +77,8 @@
   function radiusOf(lvl) { return SPECIES[lvl].size * 0.75; }
   function speedOfPlayer(lvl) { return 310 + lvl * 11; }   // 游动更爽快
   var TURN_SPEED = 9;      // 转向跟随速度：越大掉头越干脆
-  function speedOfCreature(lvl) { return 96 + lvl * 11; }  // 生物同步提速，保持追逐手感
+  // 高级生物明显慢于玩家（Lv11: 150 vs 玩家 431），靠拦截而非硬追
+  function speedOfCreature(lvl) { return 84 + lvl * 6; }
 
   /* ============================ DOM ============================ */
   var cv = document.getElementById('game');
@@ -305,7 +306,7 @@
     return clamp(lvl, 0, MAX_LEVEL);
   }
   // 高阶生物有多大概率是「会主动猎你的捕食者」
-  function huntChance() { return clamp(0.3 + player.level * 0.065, 0, 0.9); }
+  function huntChance() { return clamp(0.22 + player.level * 0.045, 0, 0.62); }
 
   function spawnEntity() {
     var a = Math.random() * TAU;
@@ -480,23 +481,23 @@
         var dx = player.x - e.x, dy = player.y - e.y;
         var dist = Math.hypot(dx, dy);
         var cs = speedOfCreature(e.level);
-        if (e.hunt && dist < 520) {
-          // 捕食者：锁定并持续追击，冷不丁来一记短突进
+        if (e.hunt && dist < 430) {
+          // 捕食者：锁定并持续追击，冷不丁来一记短突进（冲刺也要慢于玩家，能靠转向甩开）
           if (e.dash > 0) e.dash -= dt;
           e.dashCd -= dt;
-          if (e.dash <= 0 && e.dashCd <= 0 && dist < 320) {
-            e.dash = 0.42;
-            e.dashCd = rand(1.6, 3.2);
+          if (e.dash <= 0 && e.dashCd <= 0 && dist < 240) {
+            e.dash = 0.34;
+            e.dashCd = rand(2.6, 4.4);
             wave(e.x, e.y, radiusOf(e.level) * 2.2, '#ff8f8f');
           }
-          var hs2 = cs * (e.dash > 0 ? 2.6 : 1.05);
+          var hs2 = cs * (e.dash > 0 ? 1.9 : 1.05);
           e.x += dx / (dist || 1) * hs2 * dt;
           e.y += dy / (dist || 1) * hs2 * dt;
-          e.ang = angLerp(e.ang, Math.atan2(dy, dx), clamp(dt * (e.dash > 0 ? 9 : 5), 0, 1));
-        } else if (e.level > player.level && dist < 240) {
+          e.ang = angLerp(e.ang, Math.atan2(dy, dx), clamp(dt * (e.dash > 0 ? 7 : 4), 0, 1));
+        } else if (e.level > player.level && dist < 200) {
           // 非捕食者的高阶生物也会在近距离缓慢逼近
-          e.x += dx / (dist || 1) * cs * 0.5 * dt;
-          e.y += dy / (dist || 1) * cs * 0.5 * dt;
+          e.x += dx / (dist || 1) * cs * 0.35 * dt;
+          e.y += dy / (dist || 1) * cs * 0.35 * dt;
           e.ang = angLerp(e.ang, Math.atan2(dy, dx), clamp(dt * 3, 0, 1));
         } else {
           e.wt -= dt;
